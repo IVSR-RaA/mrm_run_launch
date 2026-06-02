@@ -1,0 +1,27 @@
+<launch>
+  <arg name="sequence_yaml" default="$(find sequence_controller)/cfg/run_mrm_uav_takeoff_land.yaml" />
+  <arg name="run_geometric_controller" default="true" />
+  <arg name="run_sequence_parser" default="true" />
+  <arg name="run_gps_sequence_server" default="false" />
+  <arg name="run_external_scripts" default="false" />
+  <arg name="mav_name" default="tarot" />
+  <arg name="ready_topic" default="/mavros/local_position/pose" />
+
+  <group if="$(arg run_geometric_controller)">
+    <include file="$(find geometric_controller)/launch/automatic.launch">
+      <arg name="mav_name" value="$(arg mav_name)" />
+    </include>
+  </group>
+
+  <node if="$(arg run_gps_sequence_server)"
+        pkg="geometric_controller"
+        type="gps"
+        name="controller_gps"
+        output="screen" />
+
+  <include if="$(arg run_sequence_parser)" file="$(find sequence_controller)/launch/sequence_controller.launch">
+    <arg name="sequence_yaml" value="$(arg sequence_yaml)" />
+    <arg name="run_external_scripts" value="$(arg run_external_scripts)" />
+    <arg name="ready_topic" value="$(arg ready_topic)" />
+  </include>
+</launch>

@@ -1,0 +1,15 @@
+jackal:
+  node-type: "ground_robot"
+  IP-address: "10.229.222.1"
+  using-radio: "radio_ugv"
+  base-port: "2234"
+  clients:
+    - "none_iris"
+
+none_iris:
+  node-type: "aerial_robot"
+  IP-address: "10.249.171.1"
+  using-radio: "radio_uav"
+  base-port: "6234"
+  clients:
+    - "jackal"

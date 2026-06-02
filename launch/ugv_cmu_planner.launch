@@ -1,0 +1,38 @@
+<launch>
+  <arg name="state_estimation_topic" default="/lio/odom" />
+  <arg name="registered_scan_topic" default="/lio/cloud_world" />
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="cmd_vel_stamped_topic" default="/cmd_vel2" />
+  <arg name="run_waypoint_example" default="true" />
+  <arg name="publish_world_to_map_tf" default="true" />
+  <arg name="planner_max_speed" default="0.6" />
+  <arg name="planner_autonomy_speed" default="0.4" />
+  <arg name="waypoint_speed" default="0.4" />
+  <arg name="waypoint_file_dir" default="$(find waypoint_example)/data/waypoints.ply" />
+  <arg name="boundary_file_dir" default="$(find waypoint_example)/data/boundary.ply" />
+
+  <!-- CMU planner uses the frame name "map"; Super-LIO publishes its map in "world". -->
+  <node if="$(arg publish_world_to_map_tf)"
+        pkg="tf2_ros"
+        type="static_transform_publisher"
+        name="cmu_world_to_map_tf"
+        args="0 0 0 0 0 0 1 world map"
+        output="screen" />
+
+  <include file="$(find local_planner)/launch/local_planner.launch">
+    <arg name="state_estimation_topic" value="$(arg state_estimation_topic)" />
+    <arg name="registered_scan_topic" value="$(arg registered_scan_topic)" />
+    <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
+    <arg name="cmd_vel_stamped_topic" value="$(arg cmd_vel_stamped_topic)" />
+    <arg name="maxSpeed" value="$(arg planner_max_speed)" />
+    <arg name="autonomySpeed" value="$(arg planner_autonomy_speed)" />
+    <arg name="autonomyMode" value="true" />
+  </include>
+
+  <include if="$(arg run_waypoint_example)" file="$(find waypoint_example)/launch/waypoint_example.launch">
+    <arg name="state_estimation_topic" value="$(arg state_estimation_topic)" />
+    <arg name="speed" value="$(arg waypoint_speed)" />
+    <arg name="waypoint_file_dir" value="$(arg waypoint_file_dir)" />
+    <arg name="boundary_file_dir" value="$(arg boundary_file_dir)" />
+  </include>
+</launch>

@@ -1,0 +1,135 @@
+<launch>
+  <arg name="robot_configs" default="$(find mrm_run_launch)/config/robot_configs_centralized.yaml" />
+  <arg name="lamp_robot_names_config" default="$(find mrm_run_launch)/config/lamp_robot_names.yaml" />
+  <arg name="rssi_parameters_config" default="$(find mrm_run_launch)/config/rssi_parameters.yaml" />
+
+  <arg name="sim_world_file" default="$(env HOME)/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/empty.world" />
+  <arg name="gazebo_gui" default="false" />
+  <arg name="run_gazebo" default="false" />
+  <arg name="run_distributed_lamp" default="false" />
+  <arg name="run_super_lio_rviz" default="false" />
+  <arg name="run_range_image_visualizer" default="false" />
+  <arg name="run_cmu_planner" default="true" />
+
+  <arg name="mocha_robot" default="jackal" />
+  <arg name="lamp_robot" default="ugv1" />
+  <arg name="lamp_prefix" default="b" />
+  <arg name="fusion_namespace" default="ugv1_fusion_base" />
+  <arg name="world_frame" default="world" />
+  <arg name="lidar_frame" default="ugv1/lidar" />
+  <arg name="lidar_topic" default="/mid/points" />
+  <arg name="imu_topic" default="/imu/data" />
+  <arg name="odom_topic" default="/lio/odom" />
+  <arg name="cloud_body_topic" default="/lio/cloud_body" />
+  <arg name="cloud_world_topic" default="/lio/cloud_world" />
+  <arg name="vae_robot_type" default="ground" />
+  <arg name="jackal_x" default="1" />
+  <arg name="spawn_x" default="$(arg jackal_x)" />
+  <arg name="spawn_y" default="0" />
+  <arg name="spawn_z" default="0.5" />
+  <arg name="spawn_yaw" default="0" />
+  <arg name="map_x" default="$(arg spawn_x)" />
+  <arg name="map_y" default="$(arg spawn_y)" />
+  <arg name="map_z" default="0" />
+  <arg name="run_loop_closure_batcher" default="false" />
+  <arg name="planner_max_speed" default="0.6" />
+  <arg name="planner_autonomy_speed" default="0.4" />
+  <arg name="planner_waypoint_speed" default="0.4" />
+  <arg name="run_planner_waypoints" default="true" />
+
+  <env name="JACKAL_LASER_3D" value="1" />
+
+  <include if="$(arg run_gazebo)" file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg sim_world_file)" />
+    <arg name="gui" value="$(arg gazebo_gui)" />
+    <arg name="paused" value="false" />
+    <arg name="use_sim_time" value="true" />
+  </include>
+
+  <include file="$(find mocha_launch)/launch/jackal.launch">
+    <arg name="robot_configs" value="$(arg robot_configs)" />
+    <arg name="joystick" value="false" />
+    <arg name="x" value="$(arg spawn_x)" />
+    <arg name="y" value="$(arg spawn_y)" />
+    <arg name="z" value="$(arg spawn_z)" />
+    <arg name="yaw" value="$(arg spawn_yaw)" />
+  </include>
+
+  <include file="$(find super_lio)/launch/velodyne_16.launch">
+    <arg name="lidar_topic" value="$(arg lidar_topic)" />
+    <arg name="imu_topic" value="$(arg imu_topic)" />
+    <arg name="rviz" value="$(arg run_super_lio_rviz)" />
+  </include>
+
+  <include file="$(find super_lio_lamp_adapter)/launch/robot_tf.launch">
+    <arg name="robot_name" value="$(arg lamp_robot)" />
+    <arg name="base_frame" value="base_link" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="world_to_map_x" value="$(arg map_x)" />
+    <arg name="world_to_map_y" value="$(arg map_y)" />
+    <arg name="world_to_map_z" value="$(arg map_z)" />
+    <arg name="stamp_odom_tf_with_now" value="true" />
+  </include>
+
+  <include file="$(find super_lio_lamp_adapter)/launch/local_vae_keyframe_pipeline.launch">
+    <arg name="robot_namespace" value="$(arg mocha_robot)" />
+    <arg name="robot_id" value="$(arg mocha_robot)" />
+    <arg name="robot_type" value="$(arg vae_robot_type)" />
+    <arg name="point_cloud_topic" value="$(arg lidar_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="keyframe_vae_topic" value="/keyframe_vae" />
+  </include>
+
+  <include file="$(find super_lio_lamp_adapter)/launch/local_lio_to_lamp.launch">
+    <arg name="robot_namespace" value="$(arg lamp_robot)" />
+    <arg name="robot_id" value="$(arg mocha_robot)" />
+    <arg name="robot_prefix" value="$(arg lamp_prefix)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="cloud_topic" value="$(arg cloud_body_topic)" />
+    <arg name="fixed_frame_id" value="$(arg world_frame)" />
+  </include>
+
+  <node pkg="tf2_ros"
+        type="static_transform_publisher"
+        name="ugv_base_link_to_jackal_base_link"
+        args="0 0 0 0 0 0 1 base_link jackal_base_link"
+        output="screen" />
+
+  <include if="$(arg run_cmu_planner)" file="$(find mrm_run_launch)/launch/ugv_cmu_planner.launch">
+    <arg name="state_estimation_topic" value="$(arg odom_topic)" />
+    <arg name="registered_scan_topic" value="$(arg cloud_world_topic)" />
+    <arg name="run_waypoint_example" value="$(arg run_planner_waypoints)" />
+    <arg name="planner_max_speed" value="$(arg planner_max_speed)" />
+    <arg name="planner_autonomy_speed" value="$(arg planner_autonomy_speed)" />
+    <arg name="waypoint_speed" value="$(arg planner_waypoint_speed)" />
+  </include>
+
+  <group if="$(arg run_distributed_lamp)">
+    <rosparam command="load" file="$(arg lamp_robot_names_config)" ns="/base1/lamp" />
+
+    <node pkg="topic_tools" type="relay" name="ugv_fusion_keyed_scans_to_base1"
+          args="/$(arg fusion_namespace)/lamp/keyed_scans /base1/lamp/keyed_scans" output="screen" />
+    <node pkg="topic_tools" type="relay" name="ugv_fusion_pose_graph_to_base1"
+          args="/$(arg fusion_namespace)/lamp/pose_graph /base1/lamp/pose_graph" output="screen" />
+    <node pkg="topic_tools" type="relay" name="ugv_fusion_octree_map_to_base1"
+          args="/$(arg fusion_namespace)/lamp/octree_map /base1/lamp/octree_map" output="screen" />
+    <node pkg="topic_tools" type="relay" name="ugv_fusion_optimized_values_to_base1"
+          args="/$(arg fusion_namespace)/lamp_pgo/optimized_values /base1/lamp_pgo/optimized_values" output="screen" />
+    <node pkg="topic_tools" type="relay" name="ugv_fusion_odometry_edges_to_base1"
+          args="/$(arg fusion_namespace)/pose_graph_visualizer/odometry_edges /base1/pose_graph_visualizer/odometry_edges" output="screen" />
+    <node pkg="topic_tools" type="relay" name="ugv_fusion_loop_edges_to_base1"
+          args="/$(arg fusion_namespace)/pose_graph_visualizer/loop_edges /base1/pose_graph_visualizer/loop_edges" output="screen" />
+
+    <include file="$(find lamp)/launch/turn_on_lamp_base.launch">
+      <arg name="robot_namespace" value="$(arg fusion_namespace)" />
+      <arg name="robot_names_config" value="$(arg lamp_robot_names_config)" />
+      <arg name="rssi_parameters_config" value="$(arg rssi_parameters_config)" />
+      <arg name="run_loop_closure_batcher" value="$(arg run_loop_closure_batcher)" />
+    </include>
+  </group>
+
+  <include if="$(arg run_range_image_visualizer)" file="$(find super_lio_lamp_adapter)/launch/range_image_visualizer.launch">
+    <arg name="robot_namespace" value="$(arg mocha_robot)" />
+    <arg name="lamp_robot_namespace" value="$(arg lamp_robot)" />
+  </include>
+</launch>

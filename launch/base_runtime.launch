@@ -1,0 +1,60 @@
+<launch>
+  <arg name="robot_configs" default="$(find mrm_run_launch)/config/robot_configs_centralized.yaml" />
+  <arg name="lamp_robot_names_config" default="$(find mrm_run_launch)/config/lamp_robot_names.yaml" />
+  <arg name="rssi_parameters_config" default="$(find mrm_run_launch)/config/rssi_parameters.yaml" />
+  <arg name="run_loop_closure_batcher" default="false" />
+
+  <arg name="uav_mocha_robot" default="none_iris" />
+  <arg name="ugv_mocha_robot" default="jackal" />
+  <arg name="uav_lamp_robot" default="uav1" />
+  <arg name="ugv_lamp_robot" default="ugv1" />
+  <arg name="uav_lamp_prefix" default="a" />
+  <arg name="ugv_lamp_prefix" default="b" />
+  <arg name="uav_vae_robot_type" default="ground" />
+  <arg name="ugv_vae_robot_type" default="ground" />
+  <arg name="world_frame" default="world" />
+  <arg name="uav_lidar_frame" default="uav1/lidar" />
+  <arg name="ugv_lidar_frame" default="ugv1/lidar" />
+  <arg name="run_fake_rssi" default="true" />
+  <arg name="run_uav_decoder" default="true" />
+  <arg name="run_ugv_decoder" default="true" />
+
+  <include file="$(find mocha_launch)/launch/basestation.launch">
+    <arg name="robot_configs" value="$(arg robot_configs)" />
+  </include>
+
+  <include file="$(find lamp)/launch/turn_on_lamp_base.launch">
+    <arg name="robot_namespace" value="base1" />
+    <arg name="robot_names_config" value="$(arg lamp_robot_names_config)" />
+    <arg name="rssi_parameters_config" value="$(arg rssi_parameters_config)" />
+    <arg name="run_loop_closure_batcher" value="$(arg run_loop_closure_batcher)" />
+  </include>
+
+  <include if="$(arg run_uav_decoder)" file="$(find super_lio_lamp_adapter)/launch/received_keyframe_vae_to_lamp.launch">
+    <arg name="source_mocha_robot" value="$(arg uav_mocha_robot)" />
+    <arg name="source_robot_id" value="$(arg uav_mocha_robot)" />
+    <arg name="lamp_robot_namespace" value="$(arg uav_lamp_robot)" />
+    <arg name="robot_prefix" value="$(arg uav_lamp_prefix)" />
+    <arg name="robot_type" value="$(arg uav_vae_robot_type)" />
+    <arg name="target_frame" value="$(arg world_frame)" />
+    <arg name="sensor_frame" value="$(arg uav_lidar_frame)" />
+    <arg name="output_namespace" value="$(arg uav_lamp_robot)/reconstructed" />
+  </include>
+
+  <include if="$(arg run_ugv_decoder)" file="$(find super_lio_lamp_adapter)/launch/received_keyframe_vae_to_lamp.launch">
+    <arg name="source_mocha_robot" value="$(arg ugv_mocha_robot)" />
+    <arg name="source_robot_id" value="$(arg ugv_mocha_robot)" />
+    <arg name="lamp_robot_namespace" value="$(arg ugv_lamp_robot)" />
+    <arg name="robot_prefix" value="$(arg ugv_lamp_prefix)" />
+    <arg name="robot_type" value="$(arg ugv_vae_robot_type)" />
+    <arg name="target_frame" value="$(arg world_frame)" />
+    <arg name="sensor_frame" value="$(arg ugv_lidar_frame)" />
+    <arg name="output_namespace" value="$(arg ugv_lamp_robot)/reconstructed" />
+  </include>
+
+  <node if="$(arg run_fake_rssi)"
+        pkg="mocha_core"
+        type="fake_rssi.py"
+        name="fake_rssi"
+        output="screen" />
+</launch>

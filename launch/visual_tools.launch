@@ -1,0 +1,14 @@
+<launch>
+  <arg name="rviz_config" default="/home/nlg/catkin1_ws/src/localizer_lamp/lamp/rviz/lamp_base.rviz" />
+  <arg name="run_rviz" default="true" />
+  <arg name="run_rqt_graph" default="true" />
+  <arg name="run_tf_tree" default="true" />
+  <arg name="run_rqt_console" default="true" />
+  <arg name="run_gzclient" default="true" />
+
+  <node if="$(arg run_rviz)" pkg="rviz" type="rviz" name="mrm_rviz" args="-d $(arg rviz_config)" output="screen" />
+  <node if="$(arg run_rqt_graph)" pkg="rqt_graph" type="rqt_graph" name="mrm_rqt_graph" output="screen" />
+  <node if="$(arg run_tf_tree)" pkg="rqt_tf_tree" type="rqt_tf_tree" name="mrm_rqt_tf_tree" output="screen" />
+  <node if="$(arg run_rqt_console)" pkg="rqt_console" type="rqt_console" name="mrm_rqt_console" output="screen" />
+  <node if="$(arg run_gzclient)" pkg="gazebo_ros" type="gzclient" name="mrm_gzclient" output="screen" />
+</launch>

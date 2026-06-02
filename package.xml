@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mrm_run_launch</name>
+  <version>0.1.0</version>
+  <description>Launch-only runtime files for the multi-robot mapping run modes.</description>
+
+  <maintainer email="nlg@todo.todo">nlg</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>lamp</exec_depend>
+  <exec_depend>local_planner</exec_depend>
+  <exec_depend>mocha_core</exec_depend>
+  <exec_depend>mocha_launch</exec_depend>
+  <exec_depend>geometric_controller</exec_depend>
+  <exec_depend>mavros_msgs</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>rqt_console</exec_depend>
+  <exec_depend>rqt_graph</exec_depend>
+  <exec_depend>rqt_tf_tree</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>sequence_controller</exec_depend>
+  <exec_depend>super_lio</exec_depend>
+  <exec_depend>super_lio_lamp_adapter</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>terrain_analysis</exec_depend>
+  <exec_depend>topic_tools</exec_depend>
+  <exec_depend>waypoint_example</exec_depend>
+</package>

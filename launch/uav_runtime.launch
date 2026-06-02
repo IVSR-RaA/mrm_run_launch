@@ -1,0 +1,122 @@
+<launch>
+  <arg name="robot_configs" default="$(find mrm_run_launch)/config/robot_configs_centralized.yaml" />
+  <arg name="lamp_robot_names_config" default="$(find mrm_run_launch)/config/lamp_robot_names.yaml" />
+  <arg name="rssi_parameters_config" default="$(find mrm_run_launch)/config/rssi_parameters.yaml" />
+
+  <arg name="sim_world_file" default="$(env HOME)/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/empty.world" />
+  <arg name="uav_sdf" default="$(env HOME)/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/tarot/tarot.sdf" />
+  <arg name="gazebo_gui" default="false" />
+  <arg name="run_gazebo" default="true" />
+  <arg name="spawn_delay" default="8" />
+  <arg name="run_distributed_lamp" default="false" />
+  <arg name="run_super_lio_rviz" default="false" />
+  <arg name="run_range_image_visualizer" default="false" />
+  <arg name="run_sequence_controller" default="true" />
+  <arg name="sequence_yaml" default="$(find sequence_controller)/cfg/run_mrm_uav_takeoff_land.yaml" />
+  <arg name="run_gps_sequence_server" default="false" />
+  <arg name="run_external_sequence_scripts" default="false" />
+
+  <arg name="mocha_robot" default="none_iris" />
+  <arg name="lamp_robot" default="uav1" />
+  <arg name="lamp_prefix" default="a" />
+  <arg name="fusion_namespace" default="uav1_fusion_base" />
+  <arg name="world_frame" default="world" />
+  <arg name="lidar_frame" default="uav1/lidar" />
+  <arg name="lidar_topic" default="/velodyne_points" />
+  <arg name="imu_topic" default="/mavros/imu/data" />
+  <arg name="odom_topic" default="/lio/odom" />
+  <arg name="cloud_body_topic" default="/lio/cloud_body" />
+  <arg name="vae_robot_type" default="ground" />
+  <arg name="run_loop_closure_batcher" default="false" />
+  <arg name="spawn_x" default="0" />
+  <arg name="spawn_y" default="0" />
+  <arg name="spawn_z" default="0.5" />
+  <arg name="spawn_roll" default="0" />
+  <arg name="spawn_pitch" default="0" />
+  <arg name="spawn_yaw" default="0" />
+  <arg name="map_x" default="$(arg spawn_x)" />
+  <arg name="map_y" default="$(arg spawn_y)" />
+  <arg name="map_z" default="0" />
+
+  <include file="$(find mrm_run_launch)/launch/uav_sim_mocha.launch">
+    <arg name="robot_configs" value="$(arg robot_configs)" />
+    <arg name="sdf" value="$(arg uav_sdf)" />
+    <arg name="world" value="$(arg sim_world_file)" />
+    <arg name="gui" value="$(arg gazebo_gui)" />
+    <arg name="run_gazebo" value="$(arg run_gazebo)" />
+    <arg name="spawn_delay" value="$(arg spawn_delay)" />
+    <arg name="x" value="$(arg spawn_x)" />
+    <arg name="y" value="$(arg spawn_y)" />
+    <arg name="z" value="$(arg spawn_z)" />
+    <arg name="R" value="$(arg spawn_roll)" />
+    <arg name="P" value="$(arg spawn_pitch)" />
+    <arg name="Y" value="$(arg spawn_yaw)" />
+  </include>
+
+  <include if="$(arg run_sequence_controller)" file="$(find mrm_run_launch)/launch/uav_sequence_controller.launch">
+    <arg name="sequence_yaml" value="$(arg sequence_yaml)" />
+    <arg name="run_gps_sequence_server" value="$(arg run_gps_sequence_server)" />
+    <arg name="run_external_scripts" value="$(arg run_external_sequence_scripts)" />
+  </include>
+
+  <include file="$(find super_lio)/launch/velodyne_16.launch">
+    <arg name="lidar_topic" value="$(arg lidar_topic)" />
+    <arg name="imu_topic" value="$(arg imu_topic)" />
+    <arg name="rviz" value="$(arg run_super_lio_rviz)" />
+  </include>
+
+  <include file="$(find super_lio_lamp_adapter)/launch/robot_tf.launch">
+    <arg name="robot_name" value="$(arg lamp_robot)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="world_to_map_x" value="$(arg map_x)" />
+    <arg name="world_to_map_y" value="$(arg map_y)" />
+    <arg name="world_to_map_z" value="$(arg map_z)" />
+  </include>
+
+  <include file="$(find super_lio_lamp_adapter)/launch/local_vae_keyframe_pipeline.launch">
+    <arg name="robot_namespace" value="$(arg mocha_robot)" />
+    <arg name="robot_id" value="$(arg mocha_robot)" />
+    <arg name="robot_type" value="$(arg vae_robot_type)" />
+    <arg name="point_cloud_topic" value="$(arg lidar_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="keyframe_vae_topic" value="/keyframe_vae" />
+  </include>
+
+  <include file="$(find super_lio_lamp_adapter)/launch/local_lio_to_lamp.launch">
+    <arg name="robot_namespace" value="$(arg lamp_robot)" />
+    <arg name="robot_id" value="$(arg mocha_robot)" />
+    <arg name="robot_prefix" value="$(arg lamp_prefix)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="cloud_topic" value="$(arg cloud_body_topic)" />
+    <arg name="fixed_frame_id" value="$(arg world_frame)" />
+  </include>
+
+  <group if="$(arg run_distributed_lamp)">
+    <rosparam command="load" file="$(arg lamp_robot_names_config)" ns="/base1/lamp" />
+
+    <node pkg="topic_tools" type="relay" name="uav_fusion_keyed_scans_to_base1"
+          args="/$(arg fusion_namespace)/lamp/keyed_scans /base1/lamp/keyed_scans" output="screen" />
+    <node pkg="topic_tools" type="relay" name="uav_fusion_pose_graph_to_base1"
+          args="/$(arg fusion_namespace)/lamp/pose_graph /base1/lamp/pose_graph" output="screen" />
+    <node pkg="topic_tools" type="relay" name="uav_fusion_octree_map_to_base1"
+          args="/$(arg fusion_namespace)/lamp/octree_map /base1/lamp/octree_map" output="screen" />
+    <node pkg="topic_tools" type="relay" name="uav_fusion_optimized_values_to_base1"
+          args="/$(arg fusion_namespace)/lamp_pgo/optimized_values /base1/lamp_pgo/optimized_values" output="screen" />
+    <node pkg="topic_tools" type="relay" name="uav_fusion_odometry_edges_to_base1"
+          args="/$(arg fusion_namespace)/pose_graph_visualizer/odometry_edges /base1/pose_graph_visualizer/odometry_edges" output="screen" />
+    <node pkg="topic_tools" type="relay" name="uav_fusion_loop_edges_to_base1"
+          args="/$(arg fusion_namespace)/pose_graph_visualizer/loop_edges /base1/pose_graph_visualizer/loop_edges" output="screen" />
+
+    <include file="$(find lamp)/launch/turn_on_lamp_base.launch">
+      <arg name="robot_namespace" value="$(arg fusion_namespace)" />
+      <arg name="robot_names_config" value="$(arg lamp_robot_names_config)" />
+      <arg name="rssi_parameters_config" value="$(arg rssi_parameters_config)" />
+      <arg name="run_loop_closure_batcher" value="$(arg run_loop_closure_batcher)" />
+    </include>
+  </group>
+
+  <include if="$(arg run_range_image_visualizer)" file="$(find super_lio_lamp_adapter)/launch/range_image_visualizer.launch">
+    <arg name="robot_namespace" value="$(arg mocha_robot)" />
+    <arg name="lamp_robot_namespace" value="$(arg lamp_robot)" />
+  </include>
+</launch>

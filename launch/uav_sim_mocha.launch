@@ -1,0 +1,94 @@
+<launch>
+  <arg name="robot_name" default="none_iris" />
+  <arg name="robot_configs" default="$(find mrm_run_launch)/config/robot_configs_centralized.yaml" />
+  <arg name="topic_configs" default="$(find mocha_core)/config/topic_configs.yaml" />
+  <arg name="radio_configs" default="$(find mocha_core)/config/radio_configs.yaml" />
+  <arg name="output" default="screen" />
+
+  <arg name="x" default="0" />
+  <arg name="y" default="0" />
+  <arg name="z" default="0.5" />
+  <arg name="R" default="0" />
+  <arg name="P" default="0" />
+  <arg name="Y" default="0" />
+
+  <arg name="est" default="ekf2" />
+  <arg name="vehicle" default="gazebo-classic_tarot" />
+  <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world" />
+  <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/tarot/tarot.sdf" />
+  <arg name="gui" default="false" />
+  <arg name="run_gazebo" default="true" />
+  <arg name="debug" default="false" />
+  <arg name="verbose" default="false" />
+  <arg name="paused" default="false" />
+  <arg name="respawn_gazebo" default="false" />
+  <arg name="fcu_url" default="udp://:14540@localhost:14557" />
+  <arg name="respawn_mavros" default="false" />
+  <arg name="interactive" default="true" />
+  <arg name="spawn_delay" default="8" />
+  <arg name="set_mavros_stream_rate" default="true" />
+  <arg name="mavros_stream_rate" default="50" />
+
+  <env name="PX4_SIM_MODEL" value="$(arg vehicle)" />
+  <env name="PX4_ESTIMATOR" value="$(arg est)" />
+
+  <arg unless="$(arg interactive)" name="px4_command_arg1" value="-d" />
+  <arg     if="$(arg interactive)" name="px4_command_arg1" value="" />
+
+  <node name="sitl"
+        pkg="px4"
+        type="px4"
+        output="screen"
+        args="$(find px4)/build/px4_sitl_default/etc -s etc/init.d-posix/rcS $(arg px4_command_arg1)"
+        required="true" />
+
+  <include if="$(arg run_gazebo)" file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="world_name" value="$(arg world)" />
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="verbose" value="$(arg verbose)" />
+    <arg name="paused" value="$(arg paused)" />
+    <arg name="respawn_gazebo" value="$(arg respawn_gazebo)" />
+  </include>
+
+  <node name="$(anon vehicle_spawn)"
+        pkg="gazebo_ros"
+        type="spawn_model"
+        output="screen"
+        launch-prefix="bash -lc 'until rosservice list 2&gt;/dev/null | grep -qx /gazebo/spawn_sdf_model; do sleep 0.5; done; sleep $(arg spawn_delay); exec &quot;$@&quot;' --"
+        args="-sdf -file $(arg sdf) -model $(arg vehicle) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)" />
+
+  <include file="$(find mavros)/launch/px4.launch">
+    <arg name="gcs_url" value="" />
+    <arg name="fcu_url" value="$(arg fcu_url)" />
+    <arg name="respawn_mavros" value="$(arg respawn_mavros)" />
+  </include>
+
+  <node if="$(arg set_mavros_stream_rate)"
+        pkg="mrm_run_launch"
+        type="ensure_mavros_stream_rate.py"
+        name="mavros_set_stream_rate"
+        output="screen">
+    <param name="stream_rate" value="$(arg mavros_stream_rate)" />
+    <param name="check_topics" value="/mavros/imu/data,/mavros/local_position/pose" />
+  </node>
+
+  <node pkg="tf"
+        type="static_transform_publisher"
+        name="tf_lidar"
+        args="0 0 1 0 0 0 base_link laser_3d 100" />
+
+  <node name="disable_compressed_depth"
+        pkg="image_transport"
+        type="republish"
+        args="in:=/camera/depth/image_raw raw out:=/camera/depth/image_raw _image_transport:=raw"
+        output="screen" />
+
+  <include file="$(find mocha_core)/launch/database_translators_publishers.launch"
+           pass_all_args="true" />
+
+  <node pkg="mocha_core"
+        type="fake_rssi.py"
+        name="fake_rssi"
+        output="screen" />
+</launch>
