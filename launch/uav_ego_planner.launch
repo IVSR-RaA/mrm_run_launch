@@ -1,0 +1,88 @@
+<launch>
+  <arg name="odom_topic" default="/mavros/local_position/odom" />
+  <arg name="cloud_topic" default="/ego_planner/cloud_world" />
+  <arg name="use_raw_cloud_adapter" default="true" />
+  <arg name="raw_cloud_topic" default="/velodyne_points" />
+  <arg name="cloud_target_frame" default="map" />
+  <arg name="cloud_minimum_range" default="1.0" />
+  <arg name="command_topic" default="/controller/pos_cmd" />
+  <arg name="map_size_x" default="50.0" />
+  <arg name="map_size_y" default="50.0" />
+  <arg name="map_size_z" default="3.0" />
+  <arg name="max_velocity" default="1.0" />
+  <arg name="max_acceleration" default="1.0" />
+  <arg name="planning_horizon" default="7.0" />
+  <arg name="obstacle_inflation" default="0.5" />
+  <arg name="obstacle_inflation_z" default="1.5" />
+  <arg name="lambda_fitness" default="2.0" />
+  <arg name="spawn_test_obstacle" default="false" />
+
+  <node if="$(arg use_raw_cloud_adapter)"
+        pkg="super_lio_lamp_adapter"
+        type="pointcloud_to_frame"
+        name="ego_cloud_frame_adapter"
+        output="screen">
+    <param name="input_topic" value="$(arg raw_cloud_topic)" />
+    <param name="output_topic" value="$(arg cloud_topic)" />
+    <param name="target_frame" value="$(arg cloud_target_frame)" />
+    <param name="minimum_range" value="$(arg cloud_minimum_range)" />
+  </node>
+
+  <include file="$(find ego_planner)/launch/advanced_param.xml">
+    <arg name="map_size_x_" value="$(arg map_size_x)" />
+    <arg name="map_size_y_" value="$(arg map_size_y)" />
+    <arg name="map_size_z_" value="$(arg map_size_z)" />
+    <arg name="odometry_topic" value="$(arg odom_topic)" />
+    <arg name="camera_pose_topic" value="/ego_planner/unused_camera_pose" />
+    <arg name="depth_topic" value="/ego_planner/unused_depth" />
+    <arg name="cloud_topic" value="$(arg cloud_topic)" />
+    <arg name="cx" value="320.0" />
+    <arg name="cy" value="240.0" />
+    <arg name="fx" value="320.0" />
+    <arg name="fy" value="320.0" />
+    <arg name="max_vel" value="$(arg max_velocity)" />
+    <arg name="max_acc" value="$(arg max_acceleration)" />
+    <arg name="planning_horizon" value="$(arg planning_horizon)" />
+    <arg name="obstacles_inflation" value="$(arg obstacle_inflation)" />
+    <arg name="obstacles_inflation_z" value="$(arg obstacle_inflation_z)" />
+    <arg name="lambda_fitness" value="$(arg lambda_fitness)" />
+    <arg name="point_num" value="1" />
+    <arg name="point0_x" value="0.0" />
+    <arg name="point0_y" value="0.0" />
+    <arg name="point0_z" value="1.0" />
+    <arg name="point1_x" value="0.0" />
+    <arg name="point1_y" value="0.0" />
+    <arg name="point1_z" value="1.0" />
+    <arg name="point2_x" value="0.0" />
+    <arg name="point2_y" value="0.0" />
+    <arg name="point2_z" value="1.0" />
+    <arg name="point3_x" value="0.0" />
+    <arg name="point3_y" value="0.0" />
+    <arg name="point3_z" value="1.0" />
+    <arg name="point4_x" value="0.0" />
+    <arg name="point4_y" value="0.0" />
+    <arg name="point4_z" value="1.0" />
+    <arg name="flight_type" value="1" />
+  </include>
+
+  <node pkg="ego_planner"
+        type="traj_server"
+        name="ego_traj_server"
+        output="screen">
+    <remap from="/position_cmd" to="$(arg command_topic)" />
+    <remap from="/odom_world" to="$(arg odom_topic)" />
+    <param name="traj_server/time_forward" value="1.0" />
+  </node>
+
+  <node if="$(arg spawn_test_obstacle)"
+        pkg="mrm_run_launch"
+        type="spawn_sdf_model_once.py"
+        name="spawn_ego_test_obstacle"
+        output="screen">
+    <param name="model_file" value="$(find mrm_run_launch)/models/ego_test_obstacle.sdf" />
+    <param name="model_name" value="ego_test_obstacle" />
+    <param name="x" value="3.0" />
+    <param name="y" value="0.0" />
+    <param name="z" value="3.0" />
+  </node>
+</launch>

@@ -28,6 +28,7 @@
   <arg name="spawn_delay" default="8" />
   <arg name="set_mavros_stream_rate" default="true" />
   <arg name="mavros_stream_rate" default="50" />
+  <arg name="enable_camera" default="false" />
 
   <env name="PX4_SIM_MODEL" value="$(arg vehicle)" />
   <env name="PX4_ESTIMATOR" value="$(arg est)" />
@@ -76,12 +77,19 @@
   <node pkg="tf"
         type="static_transform_publisher"
         name="tf_lidar"
-        args="0 0 1 0 0 0 base_link laser_3d 100" />
+        args="0 0 0.2 0 0 0 base_link laser_3d 100" />
 
   <node name="disable_compressed_depth"
         pkg="image_transport"
         type="republish"
         args="in:=/camera/depth/image_raw raw out:=/camera/depth/image_raw _image_transport:=raw"
+        output="screen" />
+
+  <node if="$(arg enable_camera)"
+        pkg="tf2_ros"
+        type="static_transform_publisher"
+        name="front_rgb_camera_tf"
+        args="0.20 0 0.08 -1.57079632679 0 -1.57079632679 base_link $(arg robot_name)/front_rgb_camera_optical_frame"
         output="screen" />
 
   <include file="$(find mocha_core)/launch/database_translators_publishers.launch"

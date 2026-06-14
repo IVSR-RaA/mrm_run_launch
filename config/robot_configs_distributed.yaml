@@ -5,6 +5,7 @@ jackal:
   base-port: "2234"
   clients:
     - "none_iris"
+    - "husky"
 
 none_iris:
   node-type: "aerial_robot"
@@ -13,3 +14,13 @@ none_iris:
   base-port: "6234"
   clients:
     - "jackal"
+    - "husky"
+
+husky:
+  node-type: "ground_robot"
+  IP-address: "10.229.223.1"
+  using-radio: "radio_husky"
+  base-port: "7234"
+  clients:
+    - "jackal"
+    - "none_iris"

@@ -1,5 +1,5 @@
 update_rate: 1.0
 acceptable_shortest_rssi_distance: 60
-robots_loop_closure: ['uav1', 'ugv1']
+robots_loop_closure: ['jackal1', 'none_iris2', 'husky3']
 radio_loop_closure_method: "nodes_to_nodes"
 close_keys_threshold: 20

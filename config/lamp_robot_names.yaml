@@ -1,3 +1,4 @@
 robot_names:
-  - 'uav1'
-  - 'ugv1'
+  - 'jackal1'
+  - 'none_iris2'
+  - 'husky3'

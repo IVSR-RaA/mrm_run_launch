@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:property name="camera_ns" value="$(optenv MRM_CAMERA_NAMESPACE husky)" />
+
+  <link name="front_rgb_camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.06 0.06 0.045" />
+      </geometry>
+      <material name="front_rgb_camera_black">
+        <color rgba="0.02 0.02 0.02 1.0" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.06 0.06 0.045" />
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.06" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia ixx="0.000012" ixy="0" ixz="0" iyy="0.000012" iyz="0" izz="0.000012" />
+    </inertial>
+  </link>
+
+  <joint name="front_rgb_camera_joint" type="fixed">
+    <origin xyz="0.42 0 0.45" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="front_rgb_camera_link" />
+  </joint>
+
+  <link name="front_rgb_camera_optical_frame" />
+  <joint name="front_rgb_camera_optical_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679" />
+    <parent link="front_rgb_camera_link" />
+    <child link="front_rgb_camera_optical_frame" />
+  </joint>
+
+  <gazebo reference="front_rgb_camera_link">
+    <sensor type="camera" name="front_rgb_camera">
+      <always_on>true</always_on>
+      <update_rate>15</update_rate>
+      <visualize>false</visualize>
+      <camera name="front_rgb_camera">
+        <horizontal_fov>1.0471975512</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.05</near>
+          <far>50.0</far>
+        </clip>
+      </camera>
+      <plugin name="front_rgb_camera_controller" filename="libgazebo_ros_camera.so">
+        <robotNamespace>/${camera_ns}</robotNamespace>
+        <cameraName>front_camera</cameraName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>front_rgb_camera_optical_frame</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+</robot>

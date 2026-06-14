@@ -2,16 +2,66 @@
   <arg name="sequence_yaml" default="$(find sequence_controller)/cfg/run_mrm_uav_takeoff_land.yaml" />
   <arg name="run_geometric_controller" default="true" />
   <arg name="run_sequence_parser" default="true" />
+  <arg name="run_local_sequence_server" default="true" />
   <arg name="run_gps_sequence_server" default="false" />
   <arg name="run_external_scripts" default="false" />
+  <arg name="run_ego_planner" default="false" />
   <arg name="mav_name" default="tarot" />
   <arg name="ready_topic" default="/mavros/local_position/pose" />
+  <arg name="local_waypoints_relative" default="false" />
+  <arg name="mission_use_position_setpoints" default="true" />
+  <arg name="ego_odom_topic" default="/mavros/local_position/odom" />
+  <arg name="ego_cloud_topic" default="/ego_planner/cloud_world" />
+  <arg name="ego_use_raw_cloud_adapter" default="true" />
+  <arg name="ego_raw_cloud_topic" default="/velodyne_points" />
+  <arg name="ego_cloud_target_frame" default="map" />
+  <arg name="ego_cloud_minimum_range" default="1.0" />
+  <arg name="ego_map_size_x" default="50.0" />
+  <arg name="ego_map_size_y" default="50.0" />
+  <arg name="ego_map_size_z" default="3.0" />
+  <arg name="ego_max_velocity" default="1.0" />
+  <arg name="ego_max_acceleration" default="1.0" />
+  <arg name="ego_planning_horizon" default="7.0" />
+  <arg name="ego_obstacle_inflation" default="0.5" />
+  <arg name="ego_obstacle_inflation_z" default="1.5" />
+  <arg name="ego_lambda_fitness" default="2.0" />
+  <arg name="ego_spawn_test_obstacle" default="false" />
+
+  <include if="$(arg run_ego_planner)"
+           file="$(find mrm_run_launch)/launch/uav_ego_planner.launch">
+    <arg name="odom_topic" value="$(arg ego_odom_topic)" />
+    <arg name="cloud_topic" value="$(arg ego_cloud_topic)" />
+    <arg name="use_raw_cloud_adapter" value="$(arg ego_use_raw_cloud_adapter)" />
+    <arg name="raw_cloud_topic" value="$(arg ego_raw_cloud_topic)" />
+    <arg name="cloud_target_frame" value="$(arg ego_cloud_target_frame)" />
+    <arg name="cloud_minimum_range" value="$(arg ego_cloud_minimum_range)" />
+    <arg name="map_size_x" value="$(arg ego_map_size_x)" />
+    <arg name="map_size_y" value="$(arg ego_map_size_y)" />
+    <arg name="map_size_z" value="$(arg ego_map_size_z)" />
+    <arg name="max_velocity" value="$(arg ego_max_velocity)" />
+    <arg name="max_acceleration" value="$(arg ego_max_acceleration)" />
+    <arg name="planning_horizon" value="$(arg ego_planning_horizon)" />
+    <arg name="obstacle_inflation" value="$(arg ego_obstacle_inflation)" />
+    <arg name="obstacle_inflation_z" value="$(arg ego_obstacle_inflation_z)" />
+    <arg name="lambda_fitness" value="$(arg ego_lambda_fitness)" />
+    <arg name="spawn_test_obstacle" value="$(arg ego_spawn_test_obstacle)" />
+  </include>
 
   <group if="$(arg run_geometric_controller)">
     <include file="$(find geometric_controller)/launch/automatic.launch">
       <arg name="mav_name" value="$(arg mav_name)" />
+      <arg name="mission_use_position_setpoints" value="$(arg mission_use_position_setpoints)" />
     </include>
   </group>
+
+  <node if="$(arg run_local_sequence_server)"
+        pkg="geometric_controller"
+        type="local_waypoint_server"
+        name="local_waypoint_server"
+        output="screen">
+    <param name="waypoints_are_relative" value="$(arg local_waypoints_relative)" />
+    <param name="avoid_waypoint_timeout" value="90.0" />
+  </node>
 
   <node if="$(arg run_gps_sequence_server)"
         pkg="geometric_controller"

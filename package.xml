@@ -10,11 +10,18 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>gazebo_plugins</exec_depend>
+  <exec_depend>gazebo_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>husky_control</exec_depend>
+  <exec_depend>husky_description</exec_depend>
+  <exec_depend>husky_gazebo</exec_depend>
   <exec_depend>lamp</exec_depend>
   <exec_depend>local_planner</exec_depend>
   <exec_depend>mocha_core</exec_depend>
   <exec_depend>mocha_launch</exec_depend>
   <exec_depend>geometric_controller</exec_depend>
+  <exec_depend>ego_planner</exec_depend>
   <exec_depend>mavros_msgs</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>rqt_console</exec_depend>

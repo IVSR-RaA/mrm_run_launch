@@ -13,21 +13,36 @@
   <arg name="run_range_image_visualizer" default="false" />
   <arg name="run_sequence_controller" default="true" />
   <arg name="sequence_yaml" default="$(find sequence_controller)/cfg/run_mrm_uav_takeoff_land.yaml" />
+  <arg name="run_local_sequence_server" default="true" />
   <arg name="run_gps_sequence_server" default="false" />
   <arg name="run_external_sequence_scripts" default="false" />
+  <arg name="mission_use_position_setpoints" default="true" />
+  <arg name="enable_camera" default="false" />
 
   <arg name="mocha_robot" default="none_iris" />
-  <arg name="lamp_robot" default="uav1" />
-  <arg name="lamp_prefix" default="a" />
-  <arg name="fusion_namespace" default="uav1_fusion_base" />
+  <arg name="lamp_robot" default="none_iris2" />
+  <arg name="lamp_prefix" default="b" />
+  <arg name="fusion_namespace" default="none_iris2_fusion_base" />
+  <arg name="ugv_mocha_robot" default="jackal" />
+  <arg name="ugv_lamp_robot" default="jackal1" />
+  <arg name="ugv_lamp_prefix" default="a" />
+  <arg name="ugv_vae_robot_type" default="ground" />
+  <arg name="ugv_lidar_frame" default="jackal1/lidar" />
+  <arg name="husky_mocha_robot" default="husky" />
+  <arg name="husky_lamp_robot" default="husky3" />
+  <arg name="husky_lamp_prefix" default="c" />
+  <arg name="husky_vae_robot_type" default="ground" />
+  <arg name="husky_lidar_frame" default="husky3/lidar" />
   <arg name="world_frame" default="world" />
-  <arg name="lidar_frame" default="uav1/lidar" />
+  <arg name="lidar_frame" default="none_iris2/lidar" />
   <arg name="lidar_topic" default="/velodyne_points" />
   <arg name="imu_topic" default="/mavros/imu/data" />
   <arg name="odom_topic" default="/lio/odom" />
   <arg name="cloud_body_topic" default="/lio/cloud_body" />
   <arg name="vae_robot_type" default="ground" />
   <arg name="run_loop_closure_batcher" default="false" />
+  <arg name="use_solid_loop_condition" default="false" />
+  <arg name="solid_similarity_threshold" default="0.80" />
   <arg name="spawn_x" default="0" />
   <arg name="spawn_y" default="0" />
   <arg name="spawn_z" default="0.5" />
@@ -39,6 +54,7 @@
   <arg name="map_z" default="0" />
 
   <include file="$(find mrm_run_launch)/launch/uav_sim_mocha.launch">
+    <arg name="robot_name" value="$(arg mocha_robot)" />
     <arg name="robot_configs" value="$(arg robot_configs)" />
     <arg name="sdf" value="$(arg uav_sdf)" />
     <arg name="world" value="$(arg sim_world_file)" />
@@ -51,12 +67,15 @@
     <arg name="R" value="$(arg spawn_roll)" />
     <arg name="P" value="$(arg spawn_pitch)" />
     <arg name="Y" value="$(arg spawn_yaw)" />
+    <arg name="enable_camera" value="$(arg enable_camera)" />
   </include>
 
   <include if="$(arg run_sequence_controller)" file="$(find mrm_run_launch)/launch/uav_sequence_controller.launch">
     <arg name="sequence_yaml" value="$(arg sequence_yaml)" />
+    <arg name="run_local_sequence_server" value="$(arg run_local_sequence_server)" />
     <arg name="run_gps_sequence_server" value="$(arg run_gps_sequence_server)" />
     <arg name="run_external_scripts" value="$(arg run_external_sequence_scripts)" />
+    <arg name="mission_use_position_setpoints" value="$(arg mission_use_position_setpoints)" />
   </include>
 
   <include file="$(find super_lio)/launch/velodyne_16.launch">
@@ -92,6 +111,28 @@
   </include>
 
   <group if="$(arg run_distributed_lamp)">
+    <include file="$(find super_lio_lamp_adapter)/launch/received_keyframe_vae_to_lamp.launch">
+      <arg name="source_mocha_robot" value="$(arg ugv_mocha_robot)" />
+      <arg name="source_robot_id" value="$(arg ugv_mocha_robot)" />
+      <arg name="lamp_robot_namespace" value="$(arg ugv_lamp_robot)" />
+      <arg name="robot_prefix" value="$(arg ugv_lamp_prefix)" />
+      <arg name="robot_type" value="$(arg ugv_vae_robot_type)" />
+      <arg name="target_frame" value="$(arg world_frame)" />
+      <arg name="sensor_frame" value="$(arg ugv_lidar_frame)" />
+      <arg name="output_namespace" value="$(arg ugv_lamp_robot)/reconstructed" />
+    </include>
+
+    <include file="$(find super_lio_lamp_adapter)/launch/received_keyframe_vae_to_lamp.launch">
+      <arg name="source_mocha_robot" value="$(arg husky_mocha_robot)" />
+      <arg name="source_robot_id" value="$(arg husky_mocha_robot)" />
+      <arg name="lamp_robot_namespace" value="$(arg husky_lamp_robot)" />
+      <arg name="robot_prefix" value="$(arg husky_lamp_prefix)" />
+      <arg name="robot_type" value="$(arg husky_vae_robot_type)" />
+      <arg name="target_frame" value="$(arg world_frame)" />
+      <arg name="sensor_frame" value="$(arg husky_lidar_frame)" />
+      <arg name="output_namespace" value="$(arg husky_lamp_robot)/reconstructed" />
+    </include>
+
     <rosparam command="load" file="$(arg lamp_robot_names_config)" ns="/base1/lamp" />
 
     <node pkg="topic_tools" type="relay" name="uav_fusion_keyed_scans_to_base1"
@@ -112,6 +153,8 @@
       <arg name="robot_names_config" value="$(arg lamp_robot_names_config)" />
       <arg name="rssi_parameters_config" value="$(arg rssi_parameters_config)" />
       <arg name="run_loop_closure_batcher" value="$(arg run_loop_closure_batcher)" />
+      <arg name="use_solid_loop_condition" value="$(arg use_solid_loop_condition)" />
+      <arg name="solid_similarity_threshold" value="$(arg solid_similarity_threshold)" />
     </include>
   </group>
 
